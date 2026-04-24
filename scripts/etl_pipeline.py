@@ -101,6 +101,283 @@ class AmazonDataCleaner:
         # Datetime conversion
         self.df['collected_at'] = pd.to_datetime(self.df['collected_at'], errors='coerce')
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # CATEGORY DERIVATION — added to support category-level analysis
+    # (discount, rating, review engagement per category)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # Ordered keyword rules for category classification.
+    # WHY ordered dict? Priority matters — more specific categories must be
+    # matched before broader catch-alls. E.g., "microphone" before "audio".
+    # WHY keyword-based? The raw dataset has no category column; the product
+    # title is the only structured text signal available per row.
+    CATEGORY_RULES = {
+        # Protection/warranty listings — caught first to avoid mis-classification
+        # (e.g., "ASURION 2 Year Auto Accessories Plan" would match 'auto' otherwise)
+        'Protection Plans': [
+            'protection plan', 'asurion', 'warranty plan',
+        ],
+        # Highly specific audio input devices — before generic "audio" bucket
+        'Microphones': [
+            'microphone', 'lavalier mic', 'condenser mic', 'usb mic',
+            'lapel mic', 'recording mic',
+        ],
+        'Headphones & Earbuds': [
+            'earbuds', 'earphones', 'headphones', 'headset', 'airpods',
+            'earpods', 'in-ear', 'over-ear', 'on-ear', 'true wireless',
+        ],
+        'Audio & Speakers': [
+            'speaker', 'soundbar', 'subwoofer', 'bluetooth speaker',
+            'turntable', 'amplifier', 'stereo', 'floorstanding',
+        ],
+        'Streaming & TV Devices': [
+            'roku', 'fire stick', 'fire tv stick', 'chromecast',
+            'streaming stick', 'streaming device', 'apple tv',
+        ],
+        'Smart Home & Security': [
+            'smart plug', 'smart bulb', 'security camera', 'doorbell camera',
+            'garage door', 'arlo', 'ring ', 'wyze', 'nest ',
+        ],
+        'Wearables': [
+            'smartwatch', 'apple watch', 'fitbit', 'garmin watch',
+            'fitness tracker', 'sport band', 'wearable',
+        ],
+        'Smartphones': [
+            'iphone', 'android phone', 'pixel phone', 'galaxy s ',
+            'unlocked smartphone',
+        ],
+        'Tablets': [
+            'ipad', 'tablet', 'galaxy tab', 'fire hd', 'fire tablet',
+            'android tablet',
+        ],
+        'Laptops & Computers': [
+            'laptop', 'macbook', 'chromebook', 'notebook computer',
+            'desktop computer', 'mac mini', 'mac pro', 'imac',
+        ],
+        'Gaming': [
+            'gaming', 'playstation', 'xbox', 'nintendo', 'game controller',
+            'joystick', 'gaming headset', 'gaming mouse', 'gaming keyboard',
+            'wii ', 'game console',
+        ],
+        'Monitors & Displays': [
+            'monitor', 'display ', 'projector', ' tv,', ' tv ', '4k tv',
+            'qled', 'oled tv',
+        ],
+        'Cameras & Photography': [
+            'camera', 'camera lens', 'tripod', 'dslr', 'mirrorless',
+            'gopro', 'action camera', 'webcam', 'digital photo frame',
+            'picture frame', '35mm film', 'camera strap',
+        ],
+        'Networking': [
+            'router', 'wi-fi extender', 'wifi extender', 'wifi range extender',
+            'network switch', 'modem', 'mesh network', 'access point',
+        ],
+        'Storage & Memory': [
+            'ssd', 'hard drive', 'hdd', 'flash drive', 'sd card',
+            'memory card', 'thumb drive', 'usb drive', 'nas ', 'nvme',
+        ],
+        'Printers & Ink': [
+            'printer', 'ink cartridge', 'inkjet', 'toner cartridge', 'scanner',
+            'laminating', 'laminator', 'print head',
+        ],
+        'Cables & Chargers': [
+            'cable', 'charger', 'charging cable', 'usb-c', 'usb c to',
+            'lightning cable', 'power bank', 'wall charger', 'hdmi cable',
+        ],
+        'Batteries': [
+            'battery', 'batteries', 'alkaline', 'lithium battery',
+            'rechargeable battery', 'aa battery', 'aaa battery', '9v battery',
+        ],
+        'Computer Accessories': [
+            'keyboard', 'mouse ', 'laptop stand', 'monitor arm', 'hub ',
+            'usb hub', 'docking station', 'ram ', 'ddr4', 'ddr5',
+            'cpu cooler', 'cooling fan',
+        ],
+        'Phone Accessories': [
+            'phone case', 'iphone case', 'samsung case', 'screen protector',
+            'tempered glass', 'phone holder', 'car mount', 'airtag', 'air tag',
+        ],
+        'Office Supplies': [
+            'printer paper', 'copy paper', 'pencil', 'ballpoint pen',
+            'file folder', 'packing tape', 'laminating pouches',
+            'sticky notes', 'calculator', 'whiteboard',
+        ],
+    }
+
+    @staticmethod
+    def extract_category(title: str) -> str:
+        """
+        Classify a product title into a subcategory using ordered keyword rules.
+
+        WHY static method: Pure function — depends only on the title string,
+        not on any instance state. Can be unit-tested in isolation and reused
+        outside the class if needed (e.g., in a Spark UDF).
+
+        Parameters
+        ----------
+        title : str
+            Raw product title string.
+
+        Returns
+        -------
+        str
+            Category label. Returns 'Other Electronics' when no rule matches
+            (deterministic fallback — never returns NaN or None).
+        """
+        if not isinstance(title, str) or title.strip() == '':
+            # Guard against non-string or empty values; assign safe fallback
+            return 'Other Electronics'
+
+        title_lower = title.lower()
+
+        for category, keywords in AmazonDataCleaner.CATEGORY_RULES.items():
+            for kw in keywords:
+                if kw in title_lower:
+                    return category
+
+        # Deterministic fallback — ensures zero nulls in output
+        return 'Other Electronics'
+
+    @staticmethod
+    def clean_category(series: pd.Series) -> pd.Series:
+        """
+        Standardize category labels: strip whitespace and apply Title Case.
+
+        WHY needed: Even though our rules produce consistent labels, this step
+        future-proofs the pipeline — if categories are ever loaded from an
+        external source or user input, inconsistent casing (e.g., 'batteries',
+        'BATTERIES') would break groupby aggregations and Tableau filters.
+
+        Parameters
+        ----------
+        series : pd.Series
+            Series of raw category strings.
+
+        Returns
+        -------
+        pd.Series
+            Cleaned, Title-Cased category strings.
+        """
+        return series.str.strip().str.title()
+
+    def assign_category(self):
+        """
+        Orchestrates the full category derivation step:
+          1. Applies extract_category() to each product title.
+          2. Cleans/standardizes the result via clean_category().
+          3. Validates: logs distribution and asserts zero nulls.
+
+        WHY placed after engineer_features(): The title column is untouched
+        during feature engineering, so we can safely read it here. Placing
+        category derivation before the outlier price filter means we don't
+        lose category context for rows that will be filtered — the filter
+        step runs after this method and operates on price only.
+
+        Raises
+        ------
+        AssertionError
+            If any null values are found in the resulting category column
+            (should be impossible given the 'Other Electronics' fallback).
+        """
+        logging.info("Deriving 'product_category' from product titles...")
+
+        # Step 1: Extract raw category label from title using keyword rules
+        raw_categories = self.df['title'].apply(self.extract_category)
+
+        # Step 2: Standardize casing and whitespace
+        self.df['product_category'] = self.clean_category(raw_categories)
+
+        # Step 3: Validate — null guard
+        null_count = self.df['product_category'].isna().sum()
+        assert null_count == 0, (
+            f"Data quality failure: {null_count} null values found in "
+            f"'product_category'. Check extract_category() fallback logic."
+        )
+
+        # Step 4: Log the category distribution for audit trail
+        distribution = self.df['product_category'].value_counts()
+        logging.info(
+            f"'product_category' assigned successfully. "
+            f"{self.df['product_category'].nunique()} unique categories. "
+            f"Null count: {null_count}.\n{distribution.to_string()}"
+        )
+
+    def fix_nulls(self):
+        """
+        Imputes all remaining null values in the cleaned dataset with
+        semantically appropriate sentinel strings.
+
+        WHY a dedicated method (not inline in other steps)?
+        Each prior cleaning method focuses on one column's *format*. Null-filling
+        for text/URL columns is a separate concern — grouping it here makes the
+        pipeline audit-friendly: one place to inspect and update null strategy.
+
+        Columns addressed and rationale:
+        ─────────────────────────────────────────────────────────────────────────
+        buy_box_availability  (9.85% null)
+            Only one non-null value exists in the entire dataset: 'Add to cart'.
+            A null here means the product had no active Buy Box during scraping
+            (e.g., out of stock, sold by third party without Buy Box win).
+            Fill → 'Unavailable'  (meaningful for downstream availability analysis)
+
+        delivery_details  (0.37% null)
+            Mostly 'Renewed', digital, or Protection Plan listings that had no
+            delivery estimate shown on the scraped page.
+            Fill → 'Not Available'  (honest; avoids fake delivery date imputation)
+
+        product_url  (5.78% null)
+            The scraper captured the image URL but not the product page URL for
+            these rows (typically sponsored/SSPA links where the URL was
+            JavaScript-rendered). The ASIN cannot be reliably recovered from the
+            image CDN path alone.
+            Fill → 'Unknown'  (keeps rows — still fully valid for price/rating/
+            category analysis — but marks link as unresolvable)
+        ─────────────────────────────────────────────────────────────────────────
+        """
+        logging.info("Fixing residual null values in string columns...")
+
+        # Track nulls only in the three text columns we are responsible for filling.
+        # WHY not assert total-dataframe nulls == 0 here?
+        # listed_price and current_price can still hold NaN at this point for rows
+        # where no price was ever scraped. Those rows are intentionally removed by
+        # the subsequent outlier/price filter (price <= 0 or NaN). Asserting
+        # total-null == 0 prematurely would cause a false failure.
+        text_cols = ['buy_box_availability', 'delivery_details', 'product_url']
+        null_before = self.df[text_cols].isna().sum().sum()
+
+        # buy_box_availability: null = no active buy box → 'Unavailable'
+        # Only one non-null value exists ('Add to cart'); null signals no buy box win.
+        self.df['buy_box_availability'] = (
+            self.df['buy_box_availability'].fillna('Unavailable')
+        )
+
+        # delivery_details: null = no delivery estimate shown → 'Not Available'
+        # Common for Renewed, digital, and Protection Plan listings.
+        self.df['delivery_details'] = (
+            self.df['delivery_details'].fillna('Not Available')
+        )
+
+        # product_url: null = scraper failed to capture URL → 'Unknown'
+        # Rows are kept; all analytical columns (price, rating, category) remain intact.
+        self.df['product_url'] = (
+            self.df['product_url'].fillna('Unknown')
+        )
+
+        null_after = self.df[text_cols].isna().sum().sum()
+
+        # Scoped assertion: only the three text columns we just filled must be null-free
+        assert null_after == 0, (
+            f"Data quality failure: {null_after} null(s) remain in text columns "
+            f"after fix_nulls(). Affected: "
+            f"{[c for c in text_cols if self.df[c].isna().any()]}"
+        )
+
+        logging.info(
+            f"fix_nulls() complete. Text-column nulls before: {null_before}, "
+            f"after: {null_after}. buy_box_availability, delivery_details, "
+            f"and product_url are now null-free."
+        )
+
     def run_pipeline(self):
         """Executes the full ETL cleaning pipeline."""
         logging.info("--- Starting ETL Pipeline ---")
@@ -111,10 +388,28 @@ class AmazonDataCleaner:
         self.clean_bought_last_month()
         self.clean_prices()
         self.engineer_features()
-        
-        # Outlier handling: dropping rows with price < 0 or abnormally high
-        self.df = self.df[(self.df['current_price'] > 0) & (self.df['current_price'] < 50000)]
-        
+
+        # Category derivation: runs after feature engineering (title is intact)
+        # and before outlier filtering (so category is present on all rows).
+        self.assign_category()
+
+        # Null imputation: runs after all structural cleaning steps so that
+        # columns are in their final form before we decide what 'missing' means.
+        self.fix_nulls()
+
+        # Outlier / null-price filter:
+        # Drop rows where current_price is NaN (no price was ever scraped for these)
+        # or price is out of valid range (≤ 0 or > 50,000).
+        # WHY here and not in clean_prices()? clean_prices() uses cross-column
+        # imputation (fill missing listed from current and vice versa). Only rows
+        # where BOTH prices are unparseable survive to this point as NaN — they
+        # carry no analytical value and are removed here as a final quality gate.
+        self.df = self.df[
+            self.df['current_price'].notna() &
+            (self.df['current_price'] > 0) &
+            (self.df['current_price'] < 50000)
+        ]
+
         self.save_data()
         logging.info("--- ETL Pipeline Completed Successfully ---")
 
