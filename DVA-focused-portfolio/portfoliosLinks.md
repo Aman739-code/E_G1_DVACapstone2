@@ -8,13 +8,13 @@ Welcome to our team's DVA (Data Visualization and Analytics) portfolio directory
 
 | Team Member | Deployed Portfolio Link | Repository / Source Code |
 | :--- | :--- | :--- |
-| **Adnan Rizvi** | `[My Portfolio](https://macfolio-beryl.vercel.app)` | `[Repositry Link](https://github.com/Aman739-code/macFolio)` |
-| **Aman** | `[Add Link Here]()` | `[Add Repo Link Here]()` |
-| **Bhoomi Chhikara** | `[Add Link Here]()` | `[Add Repo Link Here]()` |
-| **Gauri Mishra** | `[Add Link Here]()` | `[Add Repo Link Here]()` |
-| **Mouli Srivastava** | `[Add Link Here]()` | `[Add Repo Link Here]()` |
-| **Prashant Raj** | `[Add Link Here]()` | `[Add Repo Link Here]()` |
-| **Swagato Bauri** | `[Add Link Here]()` | `[Add Repo Link Here]()` |
+| **Adnan Rizvi** | [My Portfolio](https://macfolio-beryl.vercel.app) | [Repositry Link](https://github.com/Aman739-code/macFolio) |
+| **Aman** | [Add Link Here]() | [Add Repo Link Here]() |
+| **Bhoomi Chhikara** | [Add Link Here]() | [Add Repo Link Here]() |
+| **Gauri Mishra** | [Add Link Here]() | [Add Repo Link Here]() |
+| **Mouli Srivastava** | [Add Link Here]() | [Add Repo Link Here]() |
+| **Prashant Raj** | [Add Link Here]() | [Add Repo Link Here]() |
+| **Swagato Bauri** | [Add Link Here]() | [Add Repo Link Here]() |
 
 ---
 
