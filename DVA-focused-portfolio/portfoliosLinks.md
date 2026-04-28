@@ -8,7 +8,7 @@ Welcome to our team's DVA (Data Visualization and Analytics) portfolio directory
 
 | Team Member | Deployed Portfolio Link | Repository / Source Code |
 | :--- | :--- | :--- |
-| **Aman** | [My Portfolio](https://macfolio-beryl.vercel.app) | [Repositry Link](https://github.com/Aman739-code/macFolio) |
+| **Aman** | [My Portfolio](https://macfolio-beryl.vercel.app/) | [Repositry Link](https://github.com/Aman739-code/macFolio) |
 | **Adnan Rizvi** | [Add Link Here]() | [Add Repo Link Here]() |
 | **Bhoomi Chhikara** | [Add Link Here]() | [Add Repo Link Here]() |
 | **Gauri Mishra** | [Add Link Here]() | [Add Repo Link Here]() |
