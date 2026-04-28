@@ -118,16 +118,47 @@ flowchart TD
 
 ### 🎯 Why Each Step Matters
 
-| 🧹 Cleaning Step | 📊 Alignment with Problem Statement |
-| :--- | :--- |
-| 🩹 **Missing value treatment** | Essential for accurate **ratings & review counts** |
-| 🗑️ **Duplicate removal** | Guarantees reliable and unique **engagement metrics** |
-| 🔢 **Type conversion** | Enables correct **numeric comparisons** across categories |
-| 💰 **Price processing** | Forms the baseline for valid **discount calculations** |
-| 🔤 **Text standardisation** | Ensures consistent **category grouping** |
-| ⭐ **Product category creation** | *(Critical)* **Enables category-level analysis and strategy** |
-| 🔧 **Feature engineering** | Facilitates deeper **best-seller & coupon segmentation** |
-| 🔁 **Null imputation** | Ensures there are **no gaps in downstream Tableau reporting** |
+```mermaid
+flowchart LR
+    %% Phase 1
+    subgraph P1 [1. Initial Cleaning]
+        direction LR
+        S1[🩹 Impute Nulls] ==> R1>Essential for accurate ratings & review counts]
+        S2[🗑️ Drop Duplicates] ==> R2>Guarantees reliable & unique engagement metrics]
+    end
+
+    %% Phase 2
+    subgraph P2 [2. Transformations]
+        direction LR
+        S3[🔢 Data Types] ==> R3>Enables correct numeric comparisons]
+        S4[💰 Prices] ==> R4>Forms baseline for valid discount calculations]
+        S5[🔤 Format Text] ==> R5>Ensures consistent category grouping]
+    end
+
+    %% Phase 3
+    subgraph P3 [3. Enrichment & Export]
+        direction LR
+        S6{{"⭐ Categories (Critical)"}} ==> R6>Enables category-level analysis & strategy]
+        S7[🔧 New Features] ==> R7>Facilitates best-seller & coupon segmentation]
+        S8[✅ Clean Data] ==> R8>Ensures no gaps in Tableau reporting]
+    end
+
+    %% Invisible links to stack subgraphs neatly
+    P1 ~~~ P2 ~~~ P3
+
+    %% Custom Styling
+    classDef step fill:#ede9fe,stroke:#7c3aed,stroke-width:1px,color:#3b0764
+    classDef critical fill:#ccfdf0,stroke:#0f6e56,stroke-width:2px,color:#04342c
+    classDef reason fill:#f0f8ff,stroke:#0369a1,stroke-width:1px,color:#000
+    
+    class S1,S2,S3,S4,S5,S7,S8 step
+    class S6 critical
+    class R1,R2,R3,R4,R5,R6,R7,R8 reason
+
+    style P1 fill:none,stroke:#b0bec5,stroke-dasharray: 5 5
+    style P2 fill:none,stroke:#b0bec5,stroke-dasharray: 5 5
+    style P3 fill:none,stroke:#b0bec5,stroke-dasharray: 5 5
+```
 
 ---
 
