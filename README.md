@@ -2,8 +2,8 @@
   <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon Logo" width="300" />
 </div>
 
-# Amazon Electronics Market Intelligence
-### DVA Capstone 2 — Group E_G1
+<h1 align="center">Amazon Electronics Market Intelligence</h1>
+<h2 align="left">DVA Capstone 2 — Group E_G1</h2>
 
 ![Python](https://img.shields.io/badge/Python-3.10-blue?style=flat-square&logo=python)
 ![Jupyter](https://img.shields.io/badge/Jupyter-Notebooks-orange?style=flat-square&logo=jupyter)
@@ -27,7 +27,7 @@ This project enables **data-driven decisions** for pricing optimization, product
 
 ---
 
-## 🗂️ Repository Structure
+
 
 ## 📁 Repository Structure
 
