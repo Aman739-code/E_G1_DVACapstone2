@@ -227,7 +227,7 @@ python scripts/etl_pipeline.py
 | **Mouli Srivastava** | Analysis Lead, Report Lead | Notebook 04 - Statistical Analysis, Final Report PDF, contribution matrix |
 | **Gauri Mishra** | Report Lead | Prepared the Report PDF |
 | **Prashant Raj** | PPT Lead | Designed and structured the final presentation deck |
-| **Swagato Bauri** | Documentation Lead | Documented the process in Readme.md |
+| **Swagato Bauri** | Documentation Lead | Documented the process in Readme.md, Notebook 05 - Final_load_prep |
 
 <br>
 
